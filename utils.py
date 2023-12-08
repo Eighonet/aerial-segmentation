@@ -1,7 +1,14 @@
+from os import listdir
+
 import torch
+from torch.utils import data
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
+
+import numpy as np
+
+import matplotlib.pyplot as plt
 
 class FocalLoss(nn.Module):
     def __init__(self, gamma=0, alpha=None, size_average=True):
@@ -69,3 +76,53 @@ class mIoULoss(nn.Module):
 
         ## Return average loss over classes and batch
         return 1-loss.mean()
+    
+def seg_acc(y, predicted):
+    result = (y.cpu() == torch.argmax(predicted, axis=1).cpu()).sum() / torch.numel(y.cpu())
+    return result
+
+class SegDataset(data.Dataset):
+    def __init__(self,
+                 inputs_path: list,
+                 targets_path: list,
+                 transform_input=None,
+                 transform_mask=None,
+                 ):
+        self.inputs = [inputs_path+f for f in listdir(inputs_path) if f.split('.')[-1] == 'png']
+        self.targets = [targets_path+f for f in listdir(targets_path) if f.split('.')[-1] == 'png']
+        self.transform_input = transform_input
+        self.transform_mask = transform_mask
+        
+    def __len__(self):
+        return len(self.inputs)
+
+    def __getitem__(self,
+                    index: int):
+        input_ID = self.inputs[index]
+        target_ID = self.targets[index]
+        
+        x, y = plt.imread(input_ID), plt.imread(target_ID)
+        
+        if self.transform_input is not None:
+            x = self.transform_input(x)
+
+        if self.transform_mask is not None:
+            y = self.transform_mask(y)
+            
+#        x, y = x.type(self.inputs_dtype), y.type(self.targets_dtype)
+
+        return x.type(torch.float32), y[np.newaxis, 0, :, :].type(torch.int64), input_ID, target_ID
+
+
+
+def visualize(**images):
+    """PLot images in one row."""
+    n = len(images)
+    plt.figure(figsize=(10, 2.5))
+    for i, (name, image) in enumerate(images.items()):
+        plt.subplot(1, n, i + 1)
+        plt.xticks([])
+        plt.yticks([])
+        plt.title(' '.join(name.split('_')).title())
+        plt.imshow(image)
+    plt.show()
