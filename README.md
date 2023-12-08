@@ -1,2 +1,2 @@
 # aerial-segmentation
-Test repo for a semantic segmentation problem.
+Test repo for a semantic segmentation problem -- check the main.ipynb notebook for the solution.
