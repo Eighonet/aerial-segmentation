@@ -53,28 +53,20 @@ class mIoULoss(nn.Module):
         return one_hot
 
     def forward(self, inputs, target):
-        # inputs => N x Classes x H x W
-        # target_oneHot => N x Classes x H x W
 
         N = inputs.size()[0]
 
-        # predicted probabilities for each pixel along channel
         inputs = F.softmax(inputs,dim=1)
 
-        # Numerator Product
         target_oneHot = self.to_one_hot(target)
         inter = inputs * target_oneHot
-        ## Sum over all pixels N x C x H x W => N x C
         inter = inter.view(N,self.classes,-1).sum(2)
 
-        #Denominator
         union= inputs + target_oneHot - (inputs*target_oneHot)
-        ## Sum over all pixels N x C x H x W => N x C
         union = union.view(N,self.classes,-1).sum(2)
 
         loss = inter/union
 
-        ## Return average loss over classes and batch
         return 1-loss.mean()
     
 def seg_acc(y, predicted):
@@ -108,15 +100,11 @@ class SegDataset(data.Dataset):
 
         if self.transform_mask is not None:
             y = self.transform_mask(y)
-            
-#        x, y = x.type(self.inputs_dtype), y.type(self.targets_dtype)
 
         return x.type(torch.float32), y[np.newaxis, 0, :, :].type(torch.int64), input_ID, target_ID
 
 
-
 def visualize(**images):
-    """PLot images in one row."""
     n = len(images)
     plt.figure(figsize=(10, 2.5))
     for i, (name, image) in enumerate(images.items()):
